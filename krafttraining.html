@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kraftplan</title>
+<style>
+:root{--bg:#f3f4f1;--card:#fff;--tx:#1b1f1d;--mut:#667068;--ac:#1f6f5c;--ac2:#e8f1ee;--bd:#dfe3dd;--warn:#b4501f;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121513;--card:#1c211e;--tx:#e9eee9;--mut:#9aa69d;--ac:#4fc3a1;--ac2:#1f2d28;--bd:#2c342f;--warn:#e68a55}}
+:root[data-theme="dark"]{--bg:#121513;--card:#1c211e;--tx:#e9eee9;--mut:#9aa69d;--ac:#4fc3a1;--ac2:#1f2d28;--bd:#2c342f;--warn:#e68a55}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 "Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:84px}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font:700 26px/1.1 "Barlow Condensed","Arial Narrow",sans-serif;margin:4px 0 12px;letter-spacing:.2px}
+h2{font:700 19px/1.2 "Barlow Condensed","Arial Narrow",sans-serif;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+.mut{color:var(--mut);font-size:14px}.warn{color:var(--warn)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:20px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
+.chip.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+button.pri{background:var(--ac);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+button.sec{background:var(--ac2);color:var(--ac);border:0;border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:9px;width:100%;min-width:0}
+label{display:block;font-size:13px;color:var(--mut)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.ex{border-top:1px solid var(--bd);padding:10px 0}.ex:first-of-type{border-top:0}
+.bar{height:8px;background:var(--bd);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;background:var(--ac)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.d{border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:9px;padding:8px 0;text-align:center;font:inherit;font-size:13px;cursor:pointer}
+.d.train{background:var(--ac);color:#fff;border-color:var(--ac)}.d.cardio{background:var(--ac2);color:var(--ac);border-color:var(--ac)}.d.past{opacity:.45}
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--bd);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;background:none;color:var(--mut);padding:12px 0;font:inherit;font-size:13px;cursor:pointer}
+nav button.on{color:var(--ac);font-weight:700;box-shadow:inset 0 2px 0 var(--ac)}
+.big{font:700 34px/1 "Barlow Condensed","Arial Narrow",sans-serif}
+</style></head><body><main id="app"></main><nav id="nav"></nav>
+<script>
+const DAY=864e5,dn=()=>Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/DAY),T=dn();
+const wd=n=>(n+3)%7,WD=['Mo','Di','Mi','Do','Fr','Sa','So'],mon=n=>n-wd(n);
+const fmt=n=>new Date(n*DAY).toLocaleDateString('de-DE',{weekday:'short',day:'numeric',month:'numeric',timeZone:'UTC'});
+const GR=['Brust','Rücken','Schultern','Beine','Bizeps','Trizeps','Gesäß & Waden','Core'];
+const EX=`0|Bankdrücken|Langhantel|1.25;0|Schrägbank|Kurzhanteln|.45;0|Brustpresse|Maschine|1;0|Butterfly|Maschine|.6;0|Fly|Kabelzug|.3;
+1|Latzug|Kabelzug|1;1|Rudern|Plate Loader|1;1|Kreuzheben|Langhantel|1.75;1|Rudern sitzend|Kabelzug|.9;1|Einarmiges Rudern|Kurzhantel|.5;
+2|Schulterdrücken|Maschine|.7;2|Seitheben|Kurzhanteln|.2;2|Overhead Press|Langhantel|.8;2|Face Pulls|Kabelzug|.4;
+3|Kniebeuge|Langhantel|1.5;3|Beinpresse|Plate Loader|2.5;3|Beinbeuger|Maschine|.6;3|Beinstrecker|Maschine|.9;3|Rumänisches Kreuzheben|Langhantel|1.4;
+4|Curls|Langhantel|.7;4|Hammer Curls|Kurzhanteln|.35;4|Preacher Curl|Maschine|.6;
+5|Trizepsdrücken|Kabelzug|.8;5|Dips|Maschine|1;5|Skullcrushers|SZ-Stange|.6;
+6|Hip Thrust|Plate Loader|1.8;6|Wadenheben|Maschine|1.5;6|Abduktoren|Maschine|.9;
+7|Cable Crunch|Kabelzug|.8;7|Beinheben hängend|Körpergewicht|0;7|Bauchmaschine|Maschine|.6`.split(';').map(s=>s.trim().split('|')).map((a,i)=>({id:i,g:GR[a[0]],n:a[1],q:a[2],r:+a[3]}));
+const GP={Muskelaufbau:{s:'3–4',r:'8–12',rt:12,rest:'90 s',kcal:300,p:2,c:'20–30 Min lockeres Cardio'},Kraft:{s:'4–5',r:'3–6',rt:6,rest:'2–3 Min',kcal:150,p:2,c:'20 Min lockeres Cardio'},Fettabbau:{s:'3',r:'10–15',rt:15,rest:'60 s',kcal:-400,p:2.2,c:'30–40 Min Cardio, moderat'},Fitness:{s:'3',r:'8–12',rt:12,rest:'75 s',kcal:0,p:1.8,c:'25–30 Min Cardio, abwechslungsreich'}};
+const PRE={1:[0],2:[0,3],3:[0,2,4],4:[0,1,3,4],5:[0,1,2,4,5],6:[0,1,2,3,4,5]};
+const MEALS=[['Frühstück',.25,['Haferflocken, Magerquark, Banane','Rührei (3), Vollkornbrot, Obst','Skyr, Beeren, Nüsse, Haferflocken']],['Mittag',.3,['Hähnchen, Reis, Brokkoli','Lachs, Kartoffeln, Salat','Rindfleisch-Bowl mit Reis und Gemüse']],['Snack',.15,['Whey-Shake und Apfel','Hüttenkäse mit Reiswaffeln','Joghurt, Mandeln, Honig']],['Abend',.3,['Thunfisch-Pasta, Salat','Putenpfanne, Gemüse, Kartoffeln','Linsen-Curry mit Reis']]];
+let S={goal:'Muskelaufbau',perWeek:4,weeks:{},sessions:{},hist:[],mi:0,tab:'heute',body:{w:80,h:180,a:30,sex:'m',act:1.55,neck:'',waist:'',hip:''}};
+let had=false;try{const x=JSON.parse(localStorage.getItem('kraftplan')||'null');if(x){had=true;S=Object.assign(S,x)}}catch(e){}
+const idb=(op,v)=>new Promise(res=>{try{const r=indexedDB.open('kraftplan',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>{const tx=r.result.transaction('s',op=='set'?'readwrite':'readonly'),st=tx.objectStore('s');if(op=='set'){st.put(v,'d');tx.oncomplete=()=>res()}else{const g=st.get('d');g.onsuccess=()=>res(g.result)}};r.onerror=()=>res()}catch(e){res()}});
+const save=()=>{try{localStorage.setItem('kraftplan',JSON.stringify(S))}catch(e){}idb('set',JSON.stringify(S))};
+const week=m=>S.weeks[m]||(S.weeks[m]=Array.from({length:7},(_,i)=>PRE[S.perWeek].includes(i)?'train':'rest'));
+const nTrain=m=>week(m).filter(t=>t=='train').length;
+const bw=()=>+S.body.w||80;
+function kfa(){const b=S.body,h=+b.h,n=+b.neck,w=+b.waist,p=+b.hip;if(!h||!n||!w||w<=n)return null;
+ let v=b.sex=='m'?495/(1.0324-.19077*Math.log10(w-n)+.15456*Math.log10(h))-450:(p&&w+p>n?495/(1.29579-.35004*Math.log10(w+p-n)+.221*Math.log10(h))-450:null);
+ return v==null||!isFinite(v)?null:Math.max(3,Math.round(v*10)/10)}
+const kfaHigh=()=>{const k=kfa();return k!=null&&k>(S.body.sex=='m'?25:32)};
+const e1=h=>h.reps<=1?h.kg:h.kg*(1+h.reps/30);
+function exScore(id){const e=EX[id];if(!e.r)return null;const b=Math.max(0,...S.hist.filter(h=>h.ex==id).map(e1));return b?b/(bw()*e.r):null}
+function scores(){const o={};GR.forEach(g=>{const a=EX.filter(e=>e.g==g).map(e=>exScore(e.id)).filter(v=>v!=null).map(v=>Math.min(1.5,v));o[g]=a.length?a.reduce((x,y)=>x+y)/a.length:null});return o}
+const last=id=>[...S.hist].reverse().find(h=>h.ex==id);
+function build(n,lt,lu,sc,cnt){const k=cnt<=3?3:2,per=k==3?2:3;
+ const gs=GR.map(g=>({g,p:Math.min(n-lt[g],14)+(sc[g]!=null?Math.max(0,1-sc[g])*8:3)-(n-lt[g]<2?10:0)})).sort((a,b)=>b.p-a.p).slice(0,k).map(x=>x.g);
+ const ids=[];gs.forEach(g=>{EX.filter(e=>e.g==g).map(e=>{const s=exScore(e.id);return{id:e.id,p:Math.min(n-(lu[e.id]??-99),30)+(s==null?(e.r?2:1):Math.max(0,1-s)*6)}}).sort((a,b)=>b.p-a.p).slice(0,per).forEach(x=>ids.push(x.id))});
+ return{groups:gs,ex:ids}}
+function plan(days=14){const out=[],lt={},lu={},sc=scores();GR.forEach(g=>lt[g]=-99);
+ S.hist.forEach(h=>{const e=EX[h.ex];if(!e)return;lt[e.g]=Math.max(lt[e.g],h.t);lu[h.ex]=Math.max(lu[h.ex]??-99,h.t)});
+ for(let n=T;n<T+days;n++){const m=mon(n),type=week(m)[wd(n)];if(type!='train'){out.push({n,type});continue}
+  let s=S.sessions[n];if(!s){s=build(n,lt,lu,sc,nTrain(m));if(n==T)S.sessions[n]=s}
+  s.ex.forEach(i=>lu[i]=n);s.groups.forEach(g=>lt[g]=n);out.push({n,type,s})}
+ save();return out}
+function tip(id){const l=last(id),p=GP[S.goal];if(!l)return'Neu: taste dich mit leichtem Gewicht heran.';
+ return l.reps>=p.rt?`Zuletzt ${l.kg} kg × ${l.reps}. Ziel: ${l.kg+2.5} kg`:`Zuletzt ${l.kg} kg × ${l.reps}. Ziel: ${l.reps+1} Wdh.`}
+const $=s=>document.querySelector(s);
+function setTab(t){S.tab=t;save();render()}
+function setGoal(g){S.goal=g;save();render()}
+function setType(n,t){week(mon(n))[wd(n)]=t;if(n==T)delete S.sessions[n];save();render()}
+function cyc(n){const o=['rest','train','cardio'],w=week(mon(n));setType(n,o[(o.indexOf(w[wd(n)])+1)%3])}
+function setPer(v){S.perWeek=Math.min(6,Math.max(1,v));const m=mon(T);S.weeks[m]=Array.from({length:7},(_,i)=>PRE[S.perWeek].includes(i)&&m+i>=T?'train':'rest');delete S.sessions[T];delete S.weeks[m+7];save();render()}
+function addSet(id,kk,rr){const kg=parseFloat($('#'+kk).value.replace(',','.')),reps=parseInt($('#'+rr).value);if(!kg||!reps)return;S.hist.push({t:T,ex:id,kg,reps});save();render()}
+function swap(i){const s=S.sessions[T],g=EX[s.ex[i]].g,c=EX.filter(e=>e.g==g&&!s.ex.includes(e.id));if(c.length){s.ex[i]=c[Math.floor(Math.random()*c.length)].id;save();render()}}
+function saveBody(){const b=S.body;['w','h','a','neck','waist','hip'].forEach(k=>b[k]=$('#b_'+k).value.replace(',','.'));b.sex=$('#b_sex').value;b.act=+$('#b_act').value;delete S.sessions[T];save();render()}
+function nextMeals(){S.mi++;save();render()}
+function copyBk(){const t=JSON.stringify(S),m=$('#bkmsg');$('#bk').value=t;try{navigator.clipboard.writeText(t).then(()=>m.textContent='Backup kopiert. Füge es in eine Notiz-App ein.',()=>m.textContent='Text unten markieren und kopieren.')}catch(e){m.textContent='Text unten markieren und kopieren.'}}
+function restoreBk(){try{const x=JSON.parse($('#bk').value);if(!x.hist)throw 0;S=Object.assign(S,x);save();render()}catch(e){$('#bkmsg').textContent='Backup nicht lesbar. Füge den kompletten Text ein.'}}
+function exCard(id,i,withSwap){const e=EX[id],p=GP[S.goal],done=S.hist.filter(h=>h.t==T&&h.ex==id);
+ return`<div class="ex"><div class="row" style="justify-content:space-between"><b>${e.n}</b><span class="mut">${e.q}</span></div>
+ <div class="mut">${p.s} Sätze × ${p.r} Wdh., Pause ${p.rest}</div><div class="mut">${tip(id)}</div>
+ ${done.length?`<div style="margin:4px 0">${done.map(h=>`<span class="chip on" style="margin-right:4px;padding:3px 9px">${h.kg} × ${h.reps}</span>`).join('')}</div>`:''}
+ <div class="row" style="margin-top:6px"><input id="k${id}" inputmode="decimal" placeholder="kg" style="width:30%"><input id="r${id}" inputmode="numeric" placeholder="Wdh." style="width:26%"><button class="pri" onclick="addSet(${id},'k${id}','r${id}')">Satz</button>${withSwap?`<button class="sec" onclick="swap(${i})">Tauschen</button>`:''}</div></div>`}
+function vHeute(){const P=plan(),t=P[0],m=week(mon(T)),gp=GP[S.goal];
+ let h=`<h1>Heute, ${fmt(T)}</h1><div class="card"><label>Ziel</label><div class="row" style="margin-top:6px">${Object.keys(GP).map(g=>`<button class="chip ${g==S.goal?'on':''}" onclick="setGoal('${g}')">${g}</button>`).join('')}</div>
+ <label style="margin-top:12px">Heute</label><div class="row" style="margin-top:6px">${[['train','Training'],['cardio','Nur Cardio'],['rest','Frei']].map(a=>`<button class="chip ${m[wd(T)]==a[0]?'on':''}" onclick="setType(${T},'${a[0]}')">${a[1]}</button>`).join('')}</div></div>`;
+ if(kfaHigh()&&S.goal=='Muskelaufbau')h+=`<div class="card warn">Dein KFA ist eher hoch. Eine Fettabbau-Phase könnte dich schneller voranbringen als Aufbau mit Überschuss.</div>`;
+ if(t.type=='train'){h+=`<div class="card"><h2>${t.s.groups.join(' · ')}</h2><div class="mut">Gewählt nach Pause pro Muskelgruppe, Schwachpunkten und Übungs-Rotation.</div>${t.s.ex.map((id,i)=>exCard(id,i,true)).join('')}${(S.goal=='Fettabbau'||kfaHigh())?`<div class="ex mut">Zum Schluss: 10 Min Cardio.</div>`:''}</div>`}
+ else if(t.type=='cardio')h+=`<div class="card"><h2>Cardio</h2><p>${gp.c}. Ruhiger Puls, du solltest dich dabei noch unterhalten können.</p></div>`;
+ else h+=`<div class="card"><h2>Ruhetag</h2><p class="mut">Erholung gehört zum Plan. Wenn du doch Zeit hast, tippe oben auf Training.</p></div>`;
+ return h}
+function vWoche(){const m=mon(T),w=week(m),P=plan(21);
+ let h=`<h1>Wochenplan</h1><div class="card"><label>Trainingstage pro Woche</label><div class="row" style="margin:6px 0"><button class="sec" onclick="setPer(${S.perWeek-1})">−</button><span class="big">${S.perWeek}</span><button class="sec" onclick="setPer(${S.perWeek+1})">+</button></div>
+ <label>Diese Woche, tippe einen Tag zum Ändern</label><div class="days" style="margin-top:6px">${w.map((t,i)=>`<button class="d ${t} ${m+i<T?'past':''}" ${m+i<T?'disabled':''} onclick="cyc(${m+i})">${WD[i]}<br><small>${t=='train'?'Kraft':t=='cardio'?'Cardio':'frei'}</small></button>`).join('')}</div>
+ <p class="mut" style="margin:8px 0 0">Der Plan der Folgetage passt sich automatisch an.</p></div>
+ <div class="card"><h2>Vorschau, 3 Wochen</h2><div class="mut">Der Plan rechnet über Wochen hinweg: Muskelgruppen und Übungen rotieren, auch über den Wochenwechsel.</div>
+ ${P.map(d=>`<div class="ex row" style="justify-content:space-between"><b>${fmt(d.n)}</b><span style="text-align:right">${d.type=='train'?d.s.groups.join(', '):d.type=='cardio'?'Cardio':'<span class="mut">frei</span>'}</span></div>`).join('')}</div>`;
+ return h}
+function vStaerke(){const sc=scores(),ls={};GR.forEach(g=>ls[g]=Math.max(-99,...S.hist.filter(h=>EX[h.ex].g==g).map(h=>h.t)));
+ const rank=GR.filter(g=>sc[g]!=null).sort((a,b)=>sc[a]-sc[b]);
+ let h=`<h1>Stärke</h1><div class="card"><h2>Max oder Bestleistung eintragen</h2><div class="g3"><select id="sx" style="grid-column:1/4">${EX.map(e=>`<option value="${e.id}">${e.g}: ${e.n} (${e.q})</option>`).join('')}</select><input id="sk" inputmode="decimal" placeholder="kg"><input id="sr" inputmode="numeric" placeholder="Wdh. (1 = Max)"><button class="pri" onclick="addSet(+$('#sx').value,'sk','sr')">Speichern</button></div></div>`;
+ h+=`<div class="card"><h2>Muskelgruppen</h2><div class="mut">Vergleich deines geschätzten 1RM mit Richtwerten für dein Körpergewicht. 100 % entspricht solidem Fortgeschrittenen-Niveau.</div>${GR.map(g=>{const v=sc[g],d=ls[g]<0?'noch nie':(T-ls[g]==0?'heute':'vor '+(T-ls[g])+' Tagen');
+ return`<div class="ex"><div class="row" style="justify-content:space-between"><b>${g}</b><span class="mut">${v==null?'keine Daten':Math.round(v*100)+' %'} · ${d}</span></div><div class="bar"><i style="width:${v==null?0:Math.min(100,v/1.2*100)}%"></i></div></div>`}).join('')}</div>`;
+ if(rank.length>1)h+=`<div class="card"><h2>Hier steckt Potenzial</h2><p>Zurückgeblieben: <b>${rank.slice(0,2).join(' und ')}</b>. Der Plan wählt diese Gruppen jetzt bevorzugt aus. Gruppen ohne Daten werden ebenfalls häufiger vorgeschlagen, bis du ein Gewicht eingetragen hast.</p></div>`;
+ return h}
+function vKoerper(){const b=S.body,k=kfa();
+ const f=(id,l,v,m)=>`<div><label>${l}</label><input id="b_${id}" inputmode="decimal" value="${v}" ${m||''}></div>`;
+ const bmr=10*bw()+6.25*b.h-5*b.a+(b.sex=='m'?5:-161);
+ return`<h1>Körper</h1><div class="card"><div class="g2">${f('w','Gewicht (kg)',b.w)}${f('h','Größe (cm)',b.h)}${f('a','Alter',b.a)}
+ <div><label>Geschlecht</label><select id="b_sex"><option value="m" ${b.sex=='m'?'selected':''}>Männlich</option><option value="f" ${b.sex=='f'?'selected':''}>Weiblich</option></select></div></div>
+ <label style="margin-top:8px">Aktivität im Alltag</label><select id="b_act">${[[1.2,'Kaum aktiv'],[1.375,'Leicht aktiv'],[1.55,'Mäßig aktiv'],[1.725,'Sehr aktiv']].map(a=>`<option value="${a[0]}" ${b.act==a[0]?'selected':''}>${a[1]}</option>`).join('')}</select>
+ <h2 style="margin-top:14px">Körpermaße für den KFA</h2><div class="g3">${f('neck','Hals (cm)',b.neck)}${f('waist','Bauch auf Nabelhöhe (cm)',b.waist)}${f('hip','Hüfte (cm, nur Frauen)',b.hip)}</div>
+ <button class="pri" style="margin-top:12px" onclick="saveBody()">Speichern</button></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut">Körperfettanteil (US-Navy-Methode)</div><div class="big">${k==null?'–':k+' %'}</div></div><div style="text-align:right"><div class="mut">Magermasse</div><div class="big">${k==null?'–':(bw()*(1-k/100)).toFixed(1)+' kg'}</div></div></div>
+ <p class="mut" style="margin:8px 0 0">Schätzwert mit etwa ±3–4 % Abweichung. Ein hoher Wert löst Cardio-Finisher und einen Hinweis zur Zielwahl aus.</p></div>
+ <div class="card mut">Grundumsatz ${Math.round(bmr)} kcal. Die Stärkewerte werden relativ zu deinem Körpergewicht bewertet.</div>
+ <div class="card"><h2>Datensicherung</h2><p class="mut">Deine Daten liegen doppelt auf diesem Gerät (localStorage und IndexedDB), und die App bittet den Browser um dauerhaften Speicher. Für den Fall, dass du Browserdaten löschst oder das Gerät wechselst, kannst du ein Backup anlegen.</p><textarea id="bk" rows="3" placeholder="Backup hier einfügen zum Wiederherstellen" style="width:100%;font:inherit;font-size:12px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea><div class="row" style="margin-top:8px"><button class="pri" onclick="copyBk()">Backup kopieren</button><button class="sec" onclick="restoreBk()">Wiederherstellen</button></div><p id="bkmsg" class="mut" style="margin:8px 0 0"></p></div>`}
+function vEssen(){const b=S.body,p=GP[S.goal],bmr=10*bw()+6.25*b.h-5*b.a+(b.sex=='m'?5:-161),tdee=bmr*b.act,kc=Math.round((tdee+p.kcal)/10)*10,pr=Math.round(bw()*p.p),fat=Math.round(bw()*.9),carb=Math.max(0,Math.round((kc-pr*4-fat*9)/4));
+ return`<h1>Ernährung</h1><div class="card"><div class="mut">Tagesziel für ${S.goal}</div><div class="big">${kc} kcal</div><div class="g3" style="margin-top:8px"><div><b>${pr} g</b><div class="mut">Eiweiß</div></div><div><b>${carb} g</b><div class="mut">Kohlenhydrate</div></div><div><b>${fat} g</b><div class="mut">Fett</div></div></div>
+ <p class="mut" style="margin:8px 0 0">Gesamtumsatz ${Math.round(tdee)} kcal ${p.kcal>0?'plus':p.kcal<0?'minus':'±'} ${Math.abs(p.kcal)}.</p></div>
+ <div class="card"><div class="row" style="justify-content:space-between"><h2>Beispiel-Mahlzeiten</h2><button class="sec" onclick="nextMeals()">Andere Ideen</button></div>
+ ${MEALS.map(m=>`<div class="ex"><div class="row" style="justify-content:space-between"><b>${m[0]}</b><span class="mut">${Math.round(kc*m[1])} kcal · ${Math.round(pr*m[1])} g Eiweiß</span></div><div>${m[2][S.mi%3]}</div></div>`).join('')}
+ <p class="mut" style="margin:8px 0 0">Portionen so wählen, dass sie zu den kcal und dem Eiweiß passen.</p></div>`}
+function render(){const V={heute:vHeute,woche:vWoche,staerke:vStaerke,koerper:vKoerper,essen:vEssen};$('#app').innerHTML=V[S.tab]();
+ $('#nav').innerHTML=[['heute','Heute'],['woche','Woche'],['staerke','Stärke'],['koerper','Körper'],['essen','Essen']].map(a=>`<button class="${S.tab==a[0]?'on':''}" onclick="setTab('${a[0]}')">${a[1]}</button>`).join('')}
+render();try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+if(!had)idb('get').then(v=>{try{if(v){S=Object.assign(S,JSON.parse(v));render()}}catch(e){}});
+</script></body></html>
