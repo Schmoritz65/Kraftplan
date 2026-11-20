@@ -53,7 +53,7 @@ let had=false;try{const x=JSON.parse(localStorage.getItem('kraftplan')||'null');
 const idb=(op,v)=>new Promise(res=>{try{const r=indexedDB.open('kraftplan',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>{const tx=r.result.transaction('s',op=='set'?'readwrite':'readonly'),st=tx.objectStore('s');if(op=='set'){st.put(v,'d');tx.oncomplete=()=>res()}else{const g=st.get('d');g.onsuccess=()=>res(g.result)}};r.onerror=()=>res()}catch(e){res()}});
 const save=()=>{try{localStorage.setItem('kraftplan',JSON.stringify(S))}catch(e){}idb('set',JSON.stringify(S))};
 const loadCustom=()=>(S.custom||[]).forEach(c=>EX[c.id]=c);loadCustom();
-const TH={gruen:['Dunkelgrün','#14532d','#e2eee6','#2e9d62','#1c2b22'],blau:['Blau','#1d4ed8','#e6edfb','#4f7ff0','#1d2740'],orange:['Orange','#c2410c','#fbece3','#e0702f','#33241b'],lila:['Lila','#6d28d9','#eee8fb','#8b5cf6','#27203a'],rot:['Rot','#b91c1c','#fbe7e7','#dc4a4a','#341e1e']};
+const TH={gruen:['Dunkelgrün','#0f4426','#e2eee6','#1d6a40','#1a2a20'],blau:['Blau','#1d4ed8','#e6edfb','#4f7ff0','#1d2740'],orange:['Orange','#c2410c','#fbece3','#e0702f','#33241b'],lila:['Lila','#6d28d9','#eee8fb','#8b5cf6','#27203a'],rot:['Rot','#b91c1c','#fbe7e7','#dc4a4a','#341e1e']};
 const GC={'Brust':'#d9534f','Rücken':'#2e86c1','Schultern':'#e08a1e','Beine':'#2e9d62','Bizeps':'#8e5bd1','Trizeps':'#c2417b','Gesäß & Waden':'#17a2a2','Core':'#a3892b'};
 const SEC={Muskelaufbau:90,Kraft:180,Fettabbau:60,Fitness:75};
 const dot=g=>`<i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${GC[g]};margin-right:6px"></i>`;
@@ -118,7 +118,7 @@ function exCard(id,i,withSwap){const e=EX[id],p=GP[S.goal],done=S.hist.map((h,i)
  ${done.map(setRow).join('')}
  <div class="row" style="margin-top:6px"><input id="k${id}" inputmode="decimal" placeholder="kg" style="width:30%"><input id="r${id}" inputmode="numeric" placeholder="Wdh." style="width:26%"><button class="pri" onclick="addSet(${id},'k${id}','r${id}',1)">Satz</button>${withSwap?`<button class="sec" onclick="swap(${i})">Tauschen</button>`:''}</div>${SW===i&&withSwap?swapUI(i):''}</div>`}
 function vHeute(){const P=plan(),t=P[0],m=week(mon(T)),gp=GP[S.goal];
- let h=`<h1>Heute, ${fmt(T)}</h1><div class="card">${woUI()}<label>Ziel</label><div class="row" style="margin-top:6px">${Object.keys(GP).map(g=>`<button class="chip ${g==S.goal?'on':''}" onclick="setGoal('${g}')">${g}</button>`).join('')}</div>
+ let h=`<h1>Heute, ${fmt(T)}</h1><div class="card"><label>Ziel</label><div class="row" style="margin-top:6px">${Object.keys(GP).map(g=>`<button class="chip ${g==S.goal?'on':''}" onclick="setGoal('${g}')">${g}</button>`).join('')}</div>
  <label style="margin-top:12px">Heute</label><div class="row" style="margin-top:6px">${[['train','Training'],['cardio','Nur Cardio'],['rest','Frei']].map(a=>`<button class="chip ${m[wd(T)]==a[0]?'on':''}" onclick="setType(${T},'${a[0]}')">${a[1]}</button>`).join('')}</div></div>`;
  if(kfaHigh()&&S.goal=='Muskelaufbau')h+=`<div class="card warn">Dein KFA ist eher hoch. Eine Fettabbau-Phase könnte dich schneller voranbringen als Aufbau mit Überschuss.</div>`;
  if(t.type=='train'){h+=`<div class="card"><h2>${t.s.groups.map(g=>`<span style="color:${GC[g]}">${g}</span>`).join(' · ')}</h2><div class="mut">Gewählt nach Pause pro Muskelgruppe, Schwachpunkten und Übungs-Rotation.</div>${t.s.ex.map((id,i)=>exCard(id,i,true)).join('')}${(S.goal=='Fettabbau'||kfaHigh())?`<div class="ex mut">Zum Schluss: 10 Min Cardio.</div>`:''}</div>`}
