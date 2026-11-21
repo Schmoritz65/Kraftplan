@@ -48,7 +48,7 @@ const EX=`0|Bankdrücken|Langhantel|1.25;0|Schrägbank|Kurzhanteln|.45;0|Brustpr
 const GP={Muskelaufbau:{s:'3–4',r:'8–12',rt:12,rest:'90 s',kcal:300,p:2,c:'20–30 Min lockeres Cardio'},Kraft:{s:'4–5',r:'3–6',rt:6,rest:'2–3 Min',kcal:150,p:2,c:'20 Min lockeres Cardio'},Fettabbau:{s:'3',r:'10–15',rt:15,rest:'60 s',kcal:-400,p:2.2,c:'30–40 Min Cardio, moderat'},Fitness:{s:'3',r:'8–12',rt:12,rest:'75 s',kcal:0,p:1.8,c:'25–30 Min Cardio, abwechslungsreich'}};
 const PRE={1:[0],2:[0,3],3:[0,2,4],4:[0,1,3,4],5:[0,1,2,4,5],6:[0,1,2,3,4,5]};
 const MEALS=[['Frühstück',.25,['Haferflocken, Magerquark, Banane','Rührei (3), Vollkornbrot, Obst','Skyr, Beeren, Nüsse, Haferflocken']],['Mittag',.3,['Hähnchen, Reis, Brokkoli','Lachs, Kartoffeln, Salat','Rindfleisch-Bowl mit Reis und Gemüse']],['Snack',.15,['Whey-Shake und Apfel','Hüttenkäse mit Reiswaffeln','Joghurt, Mandeln, Honig']],['Abend',.3,['Thunfisch-Pasta, Salat','Putenpfanne, Gemüse, Kartoffeln','Linsen-Curry mit Reis']]];
-let S={custom:[],cid:200,theme:'gruen',wo:null,goal:'Muskelaufbau',perWeek:4,weeks:{},sessions:{},hist:[],mi:0,tab:'heute',body:{w:80,h:180,a:30,sex:'m',act:1.55,neck:'',waist:'',hip:''}};
+let S={bar:20,custom:[],cid:200,theme:'gruen',wo:null,goal:'Muskelaufbau',perWeek:4,weeks:{},sessions:{},hist:[],mi:0,tab:'heute',body:{w:80,h:180,a:30,sex:'m',act:1.55,neck:'',waist:'',hip:''}};
 let had=false;try{const x=JSON.parse(localStorage.getItem('kraftplan')||'null');if(x){had=true;S=Object.assign(S,x)}}catch(e){}
 const idb=(op,v)=>new Promise(res=>{try{const r=indexedDB.open('kraftplan',1);r.onupgradeneeded=()=>r.result.createObjectStore('s');r.onsuccess=()=>{const tx=r.result.transaction('s',op=='set'?'readwrite':'readonly'),st=tx.objectStore('s');if(op=='set'){st.put(v,'d');tx.oncomplete=()=>res()}else{const g=st.get('d');g.onsuccess=()=>res(g.result)}};r.onerror=()=>res()}catch(e){res()}});
 const save=()=>{try{localStorage.setItem('kraftplan',JSON.stringify(S))}catch(e){}idb('set',JSON.stringify(S))};
@@ -71,6 +71,9 @@ setInterval(tick,1000);
 const setRow=i=>{const h=S.hist[i];return`<div class="row" style="margin:4px 0"><input id="ek${i}" inputmode="decimal" value="${h.kg}" style="width:26%"><span>×</span><input id="er${i}" inputmode="numeric" value="${h.reps}" style="width:20%"><button class="sec" onclick="upSet(${i})">OK</button><button class="sec" onclick="delSet(${i})">✕</button></div>`};
 function upSet(i){const kg=parseFloat(document.getElementById('ek'+i).value.replace(',','.')),r=parseInt(document.getElementById('er'+i).value);if(!kg||!r)return;S.hist[i].kg=kg;S.hist[i].reps=r;save();render()}
 function delSet(i){S.hist.splice(i,1);save();render()}
+let HX=-1;
+const histUI=()=>{const ids=[...new Set(S.hist.map(h=>h.ex))].filter(i=>EX[i]);if(!ids.length)return'';if(!ids.includes(HX))HX=ids[0];const ix=S.hist.map((h,i)=>i).filter(i=>S.hist[i].ex==HX).reverse();return`<div class="card"><h2>Verlauf je Übung</h2><div class="mut" style="margin-bottom:8px">Werte ändern und OK tippen, mit ✕ löschen.</div><select onchange="HX=+this.value;render()">${ids.map(i=>`<option value="${i}" ${i==HX?'selected':''}>${EX[i].n} (${EX[i].q})</option>`).join('')}</select>${ix.map(i=>`<div class="ex"><div class="mut">${fmt(S.hist[i].t)}</div>${setRow(i)}</div>`).join('')}</div>`};
+function saveBar(){S.bar=Math.max(0,parseFloat(document.getElementById('bar').value.replace(',','.'))||0);save();render()}
 const swapUI=i=>{const cg=EX[S.sessions[T].ex[i]].g,gs=[cg,...GR.filter(g=>g!=cg)];return`<div class="row" style="margin-top:6px"><select id="sw" style="flex:1">${gs.map(g=>`<optgroup label="${g}">${EX.filter(e=>e.g==g).map(e=>`<option value="${e.id}">${e.n} (${e.q})</option>`).join('')}</optgroup>`).join('')}</select><button class="pri" onclick="doSwap(${i})">OK</button></div>`};
 function doSwap(i){const s=S.sessions[T],id=+document.getElementById('sw').value,g=EX[id].g;s.ex[i]=id;if(!s.groups.includes(g))s.groups.push(g);SW=-1;save();render()}
 const logUI=()=>{const ix=S.hist.map((h,i)=>i).slice(-8).reverse();return ix.length?`<div class="card"><h2>Letzte Einträge</h2><div class="mut">Zum Korrigieren Werte ändern und OK tippen, mit ✕ löschen.</div>${ix.map(i=>`<div class="ex"><div class="mut">${fmt(S.hist[i].t)} · ${EX[S.hist[i].ex]?EX[S.hist[i].ex].n:'?'}</div>${setRow(i)}</div>`).join('')}</div>`:''};
@@ -106,7 +109,7 @@ function setGoal(g){S.goal=g;save();render()}
 function setType(n,t){week(mon(n))[wd(n)]=t;if(n==T)delete S.sessions[n];save();render()}
 function cyc(n){const o=['rest','train','cardio'],w=week(mon(n));setType(n,o[(o.indexOf(w[wd(n)])+1)%3])}
 function setPer(v){S.perWeek=Math.min(6,Math.max(1,v));const m=mon(T);S.weeks[m]=Array.from({length:7},(_,i)=>PRE[S.perWeek].includes(i)&&m+i>=T?'train':'rest');delete S.sessions[T];delete S.weeks[m+7];save();render()}
-function addSet(id,kk,rr,go){const kg=parseFloat($('#'+kk).value.replace(',','.')),reps=parseInt($('#'+rr).value);if(!kg||!reps)return;S.hist.push({t:T,ex:id,kg,reps});save();render();if(go)startRest()}
+function addSet(id,kk,rr,go){const kg=parseFloat($('#'+kk).value.replace(',','.')),reps=parseInt($('#'+rr).value);if(!kg||!reps)return;const bar=EX[id]&&EX[id].q=='Langhantel'?(+S.bar||0):0;S.hist.push({t:T,ex:id,kg:kg+bar,reps});save();render();if(go)startRest()}
 function swap(i){SW=SW==i?-1:i;render()}
 function saveBody(){const b=S.body;['w','h','a','neck','waist','hip'].forEach(k=>b[k]=$('#b_'+k).value.replace(',','.'));b.sex=$('#b_sex').value;b.act=+$('#b_act').value;delete S.sessions[T];save();render()}
 function nextMeals(){S.mi++;save();render()}
@@ -114,7 +117,7 @@ function copyBk(){const t=JSON.stringify(S),m=$('#bkmsg');$('#bk').value=t;try{n
 function restoreBk(){try{const x=JSON.parse($('#bk').value);if(!x.hist)throw 0;S=Object.assign(S,x);loadCustom();save();render()}catch(e){$('#bkmsg').textContent='Backup nicht lesbar. Füge den kompletten Text ein.'}}
 function exCard(id,i,withSwap){const e=EX[id],p=GP[S.goal],done=S.hist.map((h,i)=>i).filter(i=>S.hist[i].t==T&&S.hist[i].ex==id);
  return`<div class="ex"><div class="row" style="justify-content:space-between"><b>${dot(e.g)}${e.n}</b><span class="mut">${e.q}</span></div>
- <div class="mut">${p.s} Sätze × ${p.r} Wdh., Pause ${p.rest}</div><div class="mut">${tip(id)}</div>
+ <div class="mut">${p.s} Sätze × ${p.r} Wdh., Pause ${p.rest}</div><div class="mut">${tip(id)}</div>${e.q=='Langhantel'&&S.bar?`<div class="mut">Nur Scheiben eintragen, ${S.bar} kg Stange werden addiert.</div>`:''}
  ${done.map(setRow).join('')}
  <div class="row" style="margin-top:6px"><input id="k${id}" inputmode="decimal" placeholder="kg" style="width:30%"><input id="r${id}" inputmode="numeric" placeholder="Wdh." style="width:26%"><button class="pri" onclick="addSet(${id},'k${id}','r${id}',1)">Satz</button>${withSwap?`<button class="sec" onclick="swap(${i})">Tauschen</button>`:''}</div>${SW===i&&withSwap?swapUI(i):''}</div>`}
 function vHeute(){const P=plan(),t=P[0],m=week(mon(T)),gp=GP[S.goal];
@@ -134,11 +137,11 @@ function vWoche(){const m=mon(T),w=week(m),P=plan(21);
  return h}
 function vStaerke(){const sc=scores(),ls={};GR.forEach(g=>ls[g]=Math.max(-99,...S.hist.filter(h=>EX[h.ex]&&EX[h.ex].g==g).map(h=>h.t)));
  const rank=GR.filter(g=>sc[g]!=null).sort((a,b)=>sc[a]-sc[b]);
- let h=`<h1>Stärke</h1><div class="card"><h2>Max oder Bestleistung eintragen</h2><div class="g3"><select id="sx" style="grid-column:1/4">${EX.map(e=>`<option value="${e.id}">${e.g}: ${e.n} (${e.q})</option>`).join('')}</select><input id="sk" inputmode="decimal" placeholder="kg"><input id="sr" inputmode="numeric" placeholder="Wdh. (1 = Max)"><button class="pri" onclick="addSet(+$('#sx').value,'sk','sr')">Speichern</button></div></div>`;
+ let h=`<h1>Stärke</h1><div class="card"><h2>Max oder Bestleistung eintragen</h2><div class="mut" style="margin-bottom:8px">Bei Langhantel-Übungen nur die Scheiben eintragen, die Stange wird addiert.</div><div class="g3"><select id="sx" style="grid-column:1/4">${EX.map(e=>`<option value="${e.id}">${e.g}: ${e.n} (${e.q})</option>`).join('')}</select><input id="sk" inputmode="decimal" placeholder="kg"><input id="sr" inputmode="numeric" placeholder="Wdh. (1 = Max)"><button class="pri" onclick="addSet(+$('#sx').value,'sk','sr')">Speichern</button></div></div>`;
  h+=`<div class="card"><h2>Muskelgruppen</h2><div class="mut">Vergleich deines geschätzten 1RM mit Richtwerten für dein Körpergewicht. 100 % entspricht solidem Fortgeschrittenen-Niveau.</div>${GR.map(g=>{const v=sc[g],d=ls[g]<0?'noch nie':(T-ls[g]==0?'heute':'vor '+(T-ls[g])+' Tagen');
  return`<div class="ex"><div class="row" style="justify-content:space-between"><b>${g}</b><span class="mut">${v==null?'keine Daten':Math.round(v*100)+' %'} · ${d}</span></div><div class="bar"><i style="width:${v==null?0:Math.min(100,v/1.2*100)}%;background:${GC[g]}"></i></div></div>`}).join('')}</div>`;
  if(rank.length>1)h+=`<div class="card"><h2>Hier steckt Potenzial</h2><p>Zurückgeblieben: <b>${rank.slice(0,2).join(' und ')}</b>. Der Plan wählt diese Gruppen jetzt bevorzugt aus. Gruppen ohne Daten werden ebenfalls häufiger vorgeschlagen, bis du ein Gewicht eingetragen hast.</p></div>`;
- h+=customUI()+logUI();return h}
+ h+=histUI()+customUI();return h}
 function vKoerper(){const b=S.body,k=kfa();
  const f=(id,l,v,m)=>`<div><label>${l}</label><input id="b_${id}" inputmode="decimal" value="${v}" ${m||''}></div>`;
  const bmr=10*bw()+6.25*b.h-5*b.a+(b.sex=='m'?5:-161);
@@ -150,6 +153,7 @@ function vKoerper(){const b=S.body,k=kfa();
  <div class="card"><div class="row" style="justify-content:space-between"><div><div class="mut">Körperfettanteil (US-Navy-Methode)</div><div class="big">${k==null?'–':k+' %'}</div></div><div style="text-align:right"><div class="mut">Magermasse</div><div class="big">${k==null?'–':(bw()*(1-k/100)).toFixed(1)+' kg'}</div></div></div>
  <p class="mut" style="margin:8px 0 0">Schätzwert mit etwa ±3–4 % Abweichung. Ein hoher Wert löst Cardio-Finisher und einen Hinweis zur Zielwahl aus.</p></div>
  <div class="card mut">Grundumsatz ${Math.round(bmr)} kcal. Die Stärkewerte werden relativ zu deinem Körpergewicht bewertet.</div>
+ <div class="card"><h2>Langhantel-Stange</h2><div class="mut">Bei Langhantel-Übungen trägst du nur die Scheiben ein, die Stange wird automatisch addiert. 0 = aus.</div><div class="row" style="margin-top:8px"><input id="bar" inputmode="decimal" value="${S.bar}" style="width:30%"><span>kg</span><button class="pri" onclick="saveBar()">Speichern</button></div></div>
  <div class="card"><h2>Farbdesign</h2><div class="row">${Object.keys(TH).map(k=>`<button class="chip ${S.theme==k?'on':''}" onclick="setTheme('${k}')">${TH[k][0]}</button>`).join('')}</div></div>
  <div class="card"><h2>Datensicherung</h2><p class="mut">Deine Daten liegen doppelt auf diesem Gerät (localStorage und IndexedDB), und die App bittet den Browser um dauerhaften Speicher. Für den Fall, dass du Browserdaten löschst oder das Gerät wechselst, kannst du ein Backup anlegen.</p><textarea id="bk" rows="3" placeholder="Backup hier einfügen zum Wiederherstellen" style="width:100%;font:inherit;font-size:12px;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:8px"></textarea><div class="row" style="margin-top:8px"><button class="pri" onclick="copyBk()">Backup kopieren</button><button class="sec" onclick="restoreBk()">Wiederherstellen</button></div><p id="bkmsg" class="mut" style="margin:8px 0 0"></p></div>`}
 function vEssen(){const b=S.body,p=GP[S.goal],bmr=10*bw()+6.25*b.h-5*b.a+(b.sex=='m'?5:-161),tdee=bmr*b.act,kc=Math.round((tdee+p.kcal)/10)*10,pr=Math.round(bw()*p.p),fat=Math.round(bw()*.9),carb=Math.max(0,Math.round((kc-pr*4-fat*9)/4));
